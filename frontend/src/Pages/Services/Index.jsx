@@ -9,7 +9,8 @@ export default function ServicesIndex({ user, setUser }) {
     const [search, setSearch] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState(null);
-    
+    const [deleteError, setDeleteError] = useState(null);
+
     // Form State
     const [formData, setFormData] = useState({
         nama_layanan: '',
@@ -71,17 +72,24 @@ export default function ServicesIndex({ user, setUser }) {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm("Apakah Anda yakin ingin menghapus layanan ini?")) return;
+        // Opsional: Jika kamu punya konfirmasi 'Apakah yakin ingin menghapus?' taruh di sini
+
         try {
             await api.delete(`/api/layanan/${id}`);
             fetchLayanan();
+
         } catch (error) {
-            console.error("Error deleting layanan", error);
-            alert("Gagal menghapus layanan.");
+            // TANGKAP ERROR PENOLAKAN DARI LARAVEL DI SINI
+            if (error.response && error.response.status === 422) {
+                // Tampilkan pesan "Gagal! Layanan ini tidak bisa dihapus..." ke layar
+                setDeleteError(error.response.data.message);
+            } else {
+                setDeleteError("Terjadi kesalahan sistem saat mencoba menghapus data.");
+            }
         }
     };
 
-    const filteredLayanan = layanan.filter(l => 
+    const filteredLayanan = layanan.filter(l =>
         l.nama_layanan.toLowerCase().includes(search.toLowerCase())
     );
 
@@ -92,7 +100,7 @@ export default function ServicesIndex({ user, setUser }) {
     return (
         <DashboardLayout user={user} setUser={setUser}>
             <div className="flex-1 w-full h-full bg-zinc-50 overflow-hidden flex flex-col p-6">
-                
+
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 shrink-0">
                     <div>
@@ -102,7 +110,7 @@ export default function ServicesIndex({ user, setUser }) {
                     <div className="flex gap-3 w-full md:w-auto">
                         <div className="relative w-full md:w-80 shadow-sm rounded-2xl bg-white border border-zinc-200 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all">
                             <Search className="w-5 h-5 absolute left-3.5 top-3.5 text-zinc-400" />
-                            <input 
+                            <input
                                 type="text"
                                 placeholder="Cari layanan..."
                                 value={search}
@@ -110,7 +118,7 @@ export default function ServicesIndex({ user, setUser }) {
                                 className="w-full pl-11 pr-4 py-3 bg-transparent border-none text-sm focus:ring-0 text-zinc-800 font-medium placeholder:font-normal placeholder:text-zinc-400 outline-none rounded-2xl"
                             />
                         </div>
-                        <button 
+                        <button
                             onClick={() => handleOpenModal()}
                             className="bg-zinc-900 hover:bg-black text-white px-5 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-sm shrink-0 transition-transform active:scale-95 whitespace-nowrap"
                         >
@@ -203,11 +211,11 @@ export default function ServicesIndex({ user, setUser }) {
                             <div className="space-y-5 mb-8">
                                 <div>
                                     <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Nama Layanan</label>
-                                    <input 
-                                        type="text" 
-                                        required 
+                                    <input
+                                        type="text"
+                                        required
                                         value={formData.nama_layanan}
-                                        onChange={e => setFormData({...formData, nama_layanan: e.target.value})}
+                                        onChange={e => setFormData({ ...formData, nama_layanan: e.target.value })}
                                         className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 font-medium text-zinc-800 transition-all"
                                         placeholder="Contoh: Cuci Komplit Kilat"
                                     />
@@ -215,9 +223,9 @@ export default function ServicesIndex({ user, setUser }) {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Jenis Tarif</label>
-                                        <select 
+                                        <select
                                             value={formData.jenis}
-                                            onChange={e => setFormData({...formData, jenis: e.target.value})}
+                                            onChange={e => setFormData({ ...formData, jenis: e.target.value })}
                                             className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 font-medium text-zinc-800 transition-all appearance-none"
                                         >
                                             <option value="kiloan">Kiloan (/Kg)</option>
@@ -226,20 +234,20 @@ export default function ServicesIndex({ user, setUser }) {
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Harga (Rp)</label>
-                                        <input 
-                                            type="number" 
-                                            required 
+                                        <input
+                                            type="number"
+                                            required
                                             min="0"
                                             value={formData.harga}
-                                            onChange={e => setFormData({...formData, harga: e.target.value})}
+                                            onChange={e => setFormData({ ...formData, harga: e.target.value })}
                                             className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 font-medium text-zinc-800 transition-all"
                                             placeholder="8000"
                                         />
                                     </div>
                                 </div>
                             </div>
-                            <button 
-                                type="submit" 
+                            <button
+                                type="submit"
                                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-md transition-all active:scale-[0.98]"
                             >
                                 Simpan Data
@@ -247,7 +255,36 @@ export default function ServicesIndex({ user, setUser }) {
                         </form>
                     </div>
                 </div>
+             )}
+            {/* POP-UP PERINGATAN GAGAL HAPUS */}
+            {deleteError && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-900/40 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-[1.5rem] p-6 max-w-sm w-full shadow-2xl animate-in fade-in zoom-in duration-200">
+                        <div className="flex items-center justify-center w-14 h-14 mx-auto bg-red-50 rounded-full mb-4">
+                            {/* Ikon Peringatan Merah */}
+                            <svg className="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                        </div>
+
+                        <h3 className="text-lg font-black text-center text-zinc-900 mb-2">
+                            Penghapusan Ditolak
+                        </h3>
+
+                        <p className="text-sm text-center text-zinc-500 font-medium mb-6 leading-relaxed">
+                            {deleteError}
+                        </p>
+
+                        <button
+                            onClick={() => setDeleteError(null)}
+                            className="w-full bg-zinc-900 text-white font-bold py-3.5 rounded-xl hover:bg-zinc-800 transition-colors focus:outline-none focus:ring-4 focus:ring-zinc-200"
+                        >
+                            Saya Mengerti
+                        </button>
+                    </div>
+                </div>
             )}
+            
         </DashboardLayout>
     );
 }

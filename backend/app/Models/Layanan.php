@@ -12,7 +12,8 @@ class Layanan extends Model
     protected $fillable = [
         'nama_layanan',
         'jenis',
-        'harga'
+        'harga',
+        'is_active'
     ];
 
     public function detailTransaksis()

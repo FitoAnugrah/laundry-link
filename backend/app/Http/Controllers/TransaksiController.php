@@ -3,13 +3,11 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use App\Models\Transaksi;
 use App\Models\DetailTransaksi;
 use App\Models\Pelanggan;
 use App\Models\Layanan;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Notification;
 
 class TransaksiController extends Controller
 {
@@ -93,7 +91,7 @@ class TransaksiController extends Controller
             }
 
             $transaksi = Transaksi::create([
-                'user_id' => auth()->id() ?? 1, // Ambil ID kasir yg login, atau default ke 1
+                'user_id' => auth()->id(),
                 'pelanggan_id' => $pelanggan_id,
                 'nama_sementara' => $nama,
                 'wa_sementara' => $wa,
@@ -155,18 +153,24 @@ class TransaksiController extends Controller
             }
 
             // 2. Kirim Notifikasi Lonceng (Database) ke Kasir
-            // Ambil user yang sedang login, atau default ke user ID 1 (Admin)
             $userAdmin = auth()->user() ?? \App\Models\User::first();
 
             if ($userAdmin) {
-                \Illuminate\Support\Facades\Notification::send($userAdmin, new \Illuminate\Notifications\Notification([
-                    'via' => ['database'],
-                    'database' => [
-                        'title' => 'Pesanan #' . str_pad($transaksi->id, 4, '0', STR_PAD_LEFT) . ' Siap Diambil!',
-                        'message' => 'Cucian atas nama ' . ($transaksi->nama_sementara ?? 'Pelanggan') . ' sudah selesai dan siap diambil.',
-                        'type' => 'success'
-                    ]
-                ]));
+                \Illuminate\Support\Facades\DB::table('notifications')->insert([
+                    'id' => \Illuminate\Support\Str::uuid(),
+                    'type' => 'App\Notifications\PesananSiap',
+                    'notifiable_type' => 'App\Models\User',
+                    'notifiable_id' => $userAdmin->id,
+                    'data' => json_encode([
+                        'title' => 'Pesanan #' . str_pad($transaksi->id, 4, '0', STR_PAD_LEFT) . ' Siap!',
+                        'message' => 'Cucian atas nama ' . ($transaksi->nama_sementara ?? 'Pelanggan') . ' sudah siap diambil.',
+                        'icon' => 'check',
+                        'color' => 'green',
+                    ]),
+                    'read_at' => null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
             }
         }
 
@@ -186,7 +190,21 @@ class TransaksiController extends Controller
             'status' => 'success',
             'message' => 'Transaksi berhasil dihapus!',
         ]);
-    }   
+    }
+    public function updatePaymentStatus(Request $request, Transaksi $transaksi)
+    {
+        $validated = $request->validate([
+            'status_pembayaran' => 'required|in:belum lunas,lunas'
+        ]);
+
+        $transaksi->update($validated);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Status pembayaran berhasil diperbarui!',
+            'data' => $transaksi
+        ]);
+    }
     public function statistics(Request $request)
     {
         // Tangkap parameter bulan, default ke bulan ini jika kosong

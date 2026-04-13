@@ -31,6 +31,7 @@ function App() {
       <Route path="/customers" element={user ? <CustomersIndex user={user} setUser={setUser} /> : <Navigate to="/login" />} />
       <Route path="/reports" element={user ? <ReportsIndex user={user} setUser={setUser} /> : <Navigate to="/login" />} />
       <Route path="/receipt/:id" element={user ? <Receipt /> : <Navigate to="/login" />} />
+      <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   )
 }

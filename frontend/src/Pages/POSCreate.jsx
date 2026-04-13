@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
     ShoppingCart, User, Shirt, Plus, Minus, Trash2, 
-    CreditCard, Banknote, X, Search, Info, Package, CheckCircle2, LogOut 
+    CreditCard, Banknote, X, Search, Info, Package, CheckCircle2 
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import api from '../axios';
 import DashboardLayout from '../Layouts/DashboardLayout';
 
@@ -44,12 +43,17 @@ export default function POSCreate({ user, setUser }) {
         // Fetch Master Data
         const fetchData = async () => {
             try {
-                const [resPelanggan, resLayanan] = await Promise.all([
-                    api.get('/api/pelanggan'),
-                    api.get('/api/layanan')
-                ]);
-                setPelanggans(resPelanggan.data.data);
-                setLayanans(resLayanan.data.data);
+                    const [resPelanggan, resLayanan] = await Promise.all([
+                        api.get('/api/pelanggan'),
+                        api.get('/api/layanan')
+                    ]);
+                    
+                    setPelanggans(resPelanggan.data.data);
+
+                    // Hanya tampilkan layanan aktif (handle: undefined, null, true, 1)
+                    const layananAktif = resLayanan.data.data.filter(l => l.is_active == null || l.is_active);
+                    setLayanans(layananAktif);
+
             } catch (err) {
                 console.error("Failed to load data", err);
             }
@@ -67,11 +71,6 @@ export default function POSCreate({ user, setUser }) {
             setNamaPelanggan(found.nama);
         }
     };
-
-    const handleLogout = async () => {
-        await api.post('/logout');
-        setUser(null);
-    }
 
     const filteredLayanan = layanans.filter(l => 
         l.nama_layanan.toLowerCase().includes(searchQuery.toLowerCase())

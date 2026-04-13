@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Pelanggan;
-use Inertia\Inertia;
 
 class PelangganController extends Controller
 {
@@ -28,16 +27,21 @@ class PelangganController extends Controller
     {
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
-            'no_wa' => 'required|string|max:20',
-            'alamat' => 'nullable|string',
+            // Tambahkan aturan unique di baris no_wa ini:
+            'no_wa' => 'required|string|max:20|unique:pelanggans,no_wa',
+            'alamat' => 'nullable|string' // Sesuaikan jika ada kolom alamat
+        ], [
+            // Tambahkan pesan custom ini agar lebih ramah dibaca kasir
+            'no_wa.unique' => 'Gagal! Nomor WhatsApp ini sudah terdaftar sebagai Member.'
         ]);
 
         $pelanggan = Pelanggan::create($validated);
 
         return response()->json([
             'status' => 'success',
+            'message' => 'Pelanggan berhasil ditambahkan.',
             'data' => $pelanggan
-        ], 201);
+        ]);
     }
     public function updateAlamat(Request $request, Pelanggan $pelanggan)
     {

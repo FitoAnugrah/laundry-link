@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-    Bell, LogOut, Droplets, 
+import {
+    Bell, LogOut, Droplets,
     LayoutDashboard, ShoppingBag, Users, Tag, BarChart,
     Check, CheckCheck, AlertTriangle, Star, TrendingUp, X
 } from 'lucide-react';
@@ -25,9 +25,16 @@ export default function DashboardLayout({ user, setUser, children }) {
 
     // Fetch notifications on mount & every 30 seconds
     useEffect(() => {
+        // Tarik data pertama kali saat halaman dibuka
         fetchNotifications();
-        const interval = setInterval(fetchNotifications, 30000);
-        return () => clearInterval(interval);
+
+        // Buat robot kecil yang menarik data berulang kali setiap 10 detik (10.000 milidetik)
+        const intervalId = setInterval(() => {
+            fetchNotifications();
+        }, 10000);
+
+        // Bersihkan robotnya jika user pindah halaman (Mencegah memory leak)
+        return () => clearInterval(intervalId);
     }, []);
 
     // Click outside to close dropdown
@@ -54,7 +61,7 @@ export default function DashboardLayout({ user, setUser, children }) {
     const handleMarkAsRead = async (id) => {
         try {
             await api.patch(`/api/notifications/${id}/read`);
-            setNotifications(prev => prev.map(n => 
+            setNotifications(prev => prev.map(n =>
                 n.id === id ? { ...n, read_at: new Date().toISOString() } : n
             ));
             setUnreadCount(prev => Math.max(0, prev - 1));
@@ -113,7 +120,7 @@ export default function DashboardLayout({ user, setUser, children }) {
 
     return (
         <div className="flex h-screen bg-zinc-50 overflow-hidden font-sans text-zinc-800">
-            
+
             {/* Strict Full-Height Sidebar (MASSIVE iPad Touch Targets) */}
             <aside className="w-36 bg-white border-r border-zinc-200 flex flex-col items-center py-8 z-30 shrink-0 relative">
                 {/* Logo Area */}
@@ -126,19 +133,18 @@ export default function DashboardLayout({ user, setUser, children }) {
                     {navItems.map((item) => {
                         const isActive = location.pathname === item.path;
                         return (
-                            <Link 
-                                key={item.path} 
+                            <Link
+                                key={item.path}
                                 to={item.path}
                                 title={item.label}
-                                className={`relative group flex flex-col items-center justify-center p-3 rounded-[1.5rem] transition-all w-full h-24 ${
-                                    isActive 
-                                    ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' 
-                                    : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 font-medium'
-                                }`}
+                                className={`relative group flex flex-col items-center justify-center p-3 rounded-[1.5rem] transition-all w-full h-24 ${isActive
+                                        ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100'
+                                        : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 font-medium'
+                                    }`}
                             >
                                 <item.icon className={`w-9 h-9 shrink-0 mb-2 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
                                 <span className={`text-xs w-full text-center whitespace-nowrap overflow-hidden text-ellipsis ${isActive ? 'font-black' : 'font-bold'}`}>{item.label}</span>
-                                
+
                                 {isActive && (
                                     <div className="absolute left-[-20px] top-1/2 -translate-y-1/2 w-2 h-12 bg-blue-600 rounded-r-full"></div>
                                 )}
@@ -152,7 +158,7 @@ export default function DashboardLayout({ user, setUser, children }) {
                     <button onClick={handleLogout} className="text-zinc-400 hover:text-red-500 transition-colors p-4 rounded-2xl hover:bg-red-50 active:scale-95" title="Logout">
                         <LogOut className="w-9 h-9" />
                     </button>
-                    
+
                     <div className="w-16 h-16 rounded-[1.5rem] bg-zinc-100 border-2 border-zinc-200 flex items-center justify-center text-zinc-600 font-black text-2xl cursor-help shadow-sm active:scale-95 transition-transform" title={user?.name}>
                         {user?.name?.charAt(0).toUpperCase() || 'K'}
                     </div>
@@ -161,7 +167,7 @@ export default function DashboardLayout({ user, setUser, children }) {
 
             {/* Main Content Space */}
             <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden bg-zinc-50">
-                
+
                 {/* Edge-to-Edge Static Header */}
                 <header className="h-16 bg-white border-b border-zinc-200 flex items-center justify-between px-6 shrink-0 z-20">
                     <div className="flex items-center gap-3">
@@ -181,11 +187,11 @@ export default function DashboardLayout({ user, setUser, children }) {
                             </p>
                         </div>
                         <div className="w-px h-8 bg-zinc-200"></div>
-                        
+
                         {/* ========== NOTIFICATION BELL ========== */}
                         <div className="relative" ref={dropdownRef}>
-                            <button 
-                                onClick={() => setShowNotif(!showNotif)} 
+                            <button
+                                onClick={() => setShowNotif(!showNotif)}
                                 className="relative text-zinc-500 hover:text-zinc-900 transition-all p-2 rounded-xl hover:bg-zinc-50 active:scale-90"
                             >
                                 <Bell className="w-6 h-6" />
@@ -202,7 +208,7 @@ export default function DashboardLayout({ user, setUser, children }) {
                             {/* Dropdown Panel */}
                             {showNotif && (
                                 <div className="absolute right-0 top-full mt-3 w-[400px] bg-white rounded-2xl shadow-2xl border border-zinc-200 z-[99999] overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200">
-                                    
+
                                     {/* Dropdown Header */}
                                     <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/80">
                                         <div className="flex items-center gap-2">
@@ -215,7 +221,7 @@ export default function DashboardLayout({ user, setUser, children }) {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             {unreadCount > 0 && (
-                                                <button 
+                                                <button
                                                     onClick={handleMarkAllAsRead}
                                                     disabled={loadingNotifs}
                                                     className="text-[10px] font-bold text-blue-600 hover:text-blue-800 px-2.5 py-1 rounded-lg hover:bg-blue-50 transition-colors uppercase tracking-wider flex items-center gap-1 disabled:opacity-50"
@@ -224,7 +230,7 @@ export default function DashboardLayout({ user, setUser, children }) {
                                                     Baca Semua
                                                 </button>
                                             )}
-                                            <button 
+                                            <button
                                                 onClick={() => setShowNotif(false)}
                                                 className="text-zinc-400 hover:text-zinc-700 p-1 rounded-lg hover:bg-zinc-100 transition-colors"
                                             >
@@ -248,19 +254,17 @@ export default function DashboardLayout({ user, setUser, children }) {
                                                 <button
                                                     key={notif.id}
                                                     onClick={() => !notif.read_at && handleMarkAsRead(notif.id)}
-                                                    className={`w-full text-left px-5 py-4 flex items-start gap-3 transition-all duration-200 hover:bg-zinc-50 group ${
-                                                        notif.read_at 
-                                                            ? 'bg-white' 
+                                                    className={`w-full text-left px-5 py-4 flex items-start gap-3 transition-all duration-200 hover:bg-zinc-50 group ${notif.read_at
+                                                            ? 'bg-white'
                                                             : 'bg-blue-50/60'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     {getNotifIcon(notif.icon, notif.color)}
                                                     <div className="flex-1 min-w-0">
-                                                        <p className={`text-[13px] leading-snug mb-0.5 ${
-                                                            notif.read_at 
-                                                                ? 'text-zinc-600 font-medium' 
+                                                        <p className={`text-[13px] leading-snug mb-0.5 ${notif.read_at
+                                                                ? 'text-zinc-600 font-medium'
                                                                 : 'text-zinc-900 font-bold'
-                                                        }`}>
+                                                            }`}>
                                                             {notif.title}
                                                         </p>
                                                         <p className="text-[11px] text-zinc-400 leading-snug line-clamp-2 font-medium">

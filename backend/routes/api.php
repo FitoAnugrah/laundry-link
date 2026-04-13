@@ -33,12 +33,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('layanan', [LayananController::class, 'store']);
     Route::put('layanan/{layanan}', [LayananController::class, 'update']);
     Route::delete('layanan/{layanan}', [LayananController::class, 'destroy']);
+    Route::patch('layanan/{layanan}/toggle', [LayananController::class, 'toggleStatus']);
 
     // Transaksi & Laporan
     Route::get('reports/statistics', [TransaksiController::class, 'statistics']);
     Route::get('transaksi', [TransaksiController::class, 'index']);
     Route::post('transaksi', [TransaksiController::class, 'store']);
     Route::patch('transaksi/{transaksi}/status', [TransaksiController::class, 'updateStatus']);
+    Route::patch('transaksi/{transaksi}/payment', [TransaksiController::class, 'updatePaymentStatus']);
     Route::get('transaksi/{transaksi}/receipt', [TransaksiController::class, 'receipt']);
     Route::put('/pelanggan/{pelanggan}', [PelangganController::class, 'updateAlamat']);
 
