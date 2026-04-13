@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
-    Menu, Bell, LogOut, Droplets, 
-    LayoutDashboard, ShoppingBag, Users, FileText, Tag, BarChart 
+    Bell, LogOut, Droplets, 
+    LayoutDashboard, ShoppingBag, Users, Tag, BarChart,
+    Check, CheckCheck, AlertTriangle, Star, TrendingUp, X
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import api from '../axios';
@@ -10,14 +11,96 @@ export default function DashboardLayout({ user, setUser, children }) {
     const [currentTime, setCurrentTime] = useState(new Date());
     const location = useLocation();
 
+    // Notification State
+    const [notifications, setNotifications] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [showNotif, setShowNotif] = useState(false);
+    const [loadingNotifs, setLoadingNotifs] = useState(false);
+    const dropdownRef = useRef(null);
+
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
 
+    // Fetch notifications on mount & every 30 seconds
+    useEffect(() => {
+        fetchNotifications();
+        const interval = setInterval(fetchNotifications, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // Click outside to close dropdown
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setShowNotif(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const fetchNotifications = async () => {
+        try {
+            const res = await api.get('/api/notifications');
+            setNotifications(res.data.data);
+            setUnreadCount(res.data.unread_count);
+        } catch (err) {
+            console.error("Gagal fetch notifikasi:", err);
+        }
+    };
+
+    const handleMarkAsRead = async (id) => {
+        try {
+            await api.patch(`/api/notifications/${id}/read`);
+            setNotifications(prev => prev.map(n => 
+                n.id === id ? { ...n, read_at: new Date().toISOString() } : n
+            ));
+            setUnreadCount(prev => Math.max(0, prev - 1));
+        } catch (err) {
+            console.error("Gagal tandai dibaca:", err);
+        }
+    };
+
+    const handleMarkAllAsRead = async () => {
+        try {
+            setLoadingNotifs(true);
+            await api.post('/api/notifications/read-all');
+            setNotifications(prev => prev.map(n => ({ ...n, read_at: new Date().toISOString() })));
+            setUnreadCount(0);
+        } catch (err) {
+            console.error("Gagal tandai semua dibaca:", err);
+        } finally {
+            setLoadingNotifs(false);
+        }
+    };
+
     const handleLogout = async () => {
         await api.post('/logout');
         setUser(null);
+    };
+
+    const getNotifIcon = (icon, color) => {
+        const colorMap = {
+            red: 'text-red-500 bg-red-50',
+            yellow: 'text-yellow-600 bg-yellow-50',
+            green: 'text-emerald-600 bg-emerald-50',
+            blue: 'text-blue-600 bg-blue-50',
+        };
+        const cls = colorMap[color] || colorMap.blue;
+        const iconMap = {
+            alert: <AlertTriangle className="w-4 h-4" />,
+            star: <Star className="w-4 h-4" />,
+            check: <Check className="w-4 h-4" />,
+            trending: <TrendingUp className="w-4 h-4" />,
+            bell: <Bell className="w-4 h-4" />,
+        };
+        return (
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${cls}`}>
+                {iconMap[icon] || iconMap.bell}
+            </div>
+        );
     };
 
     const navItems = [
@@ -98,10 +181,106 @@ export default function DashboardLayout({ user, setUser, children }) {
                             </p>
                         </div>
                         <div className="w-px h-8 bg-zinc-200"></div>
-                        <button className="relative text-zinc-500 hover:text-zinc-900 transition-colors">
-                            <Bell className="w-6 h-6" />
-                            <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
-                        </button>
+                        
+                        {/* ========== NOTIFICATION BELL ========== */}
+                        <div className="relative" ref={dropdownRef}>
+                            <button 
+                                onClick={() => setShowNotif(!showNotif)} 
+                                className="relative text-zinc-500 hover:text-zinc-900 transition-all p-2 rounded-xl hover:bg-zinc-50 active:scale-90"
+                            >
+                                <Bell className="w-6 h-6" />
+                                {unreadCount > 0 && (
+                                    <span className="absolute top-0.5 right-0.5 flex h-4 w-4">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                        <span className="relative inline-flex items-center justify-center rounded-full h-4 w-4 bg-red-500 text-white text-[8px] font-black border-2 border-white">
+                                            {unreadCount > 9 ? '9+' : unreadCount}
+                                        </span>
+                                    </span>
+                                )}
+                            </button>
+
+                            {/* Dropdown Panel */}
+                            {showNotif && (
+                                <div className="absolute right-0 top-full mt-3 w-[400px] bg-white rounded-2xl shadow-2xl border border-zinc-200 z-[99999] overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200">
+                                    
+                                    {/* Dropdown Header */}
+                                    <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/80">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-black text-sm text-zinc-800 tracking-tight">Notifikasi</h3>
+                                            {unreadCount > 0 && (
+                                                <span className="bg-red-100 text-red-600 text-[10px] font-black px-2 py-0.5 rounded-md">
+                                                    {unreadCount} baru
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {unreadCount > 0 && (
+                                                <button 
+                                                    onClick={handleMarkAllAsRead}
+                                                    disabled={loadingNotifs}
+                                                    className="text-[10px] font-bold text-blue-600 hover:text-blue-800 px-2.5 py-1 rounded-lg hover:bg-blue-50 transition-colors uppercase tracking-wider flex items-center gap-1 disabled:opacity-50"
+                                                >
+                                                    <CheckCheck className="w-3 h-3" />
+                                                    Baca Semua
+                                                </button>
+                                            )}
+                                            <button 
+                                                onClick={() => setShowNotif(false)}
+                                                className="text-zinc-400 hover:text-zinc-700 p-1 rounded-lg hover:bg-zinc-100 transition-colors"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Notification Items */}
+                                    <div className="max-h-[360px] overflow-y-auto custom-scrollbar divide-y divide-zinc-100/80">
+                                        {notifications.length === 0 ? (
+                                            <div className="py-12 flex flex-col items-center text-center">
+                                                <div className="w-14 h-14 bg-zinc-100 rounded-2xl flex items-center justify-center mb-3">
+                                                    <Bell className="w-6 h-6 text-zinc-300" />
+                                                </div>
+                                                <p className="text-sm font-bold text-zinc-400">Belum ada notifikasi</p>
+                                                <p className="text-xs text-zinc-300 mt-1">Aktivitas terbaru akan tampil di sini</p>
+                                            </div>
+                                        ) : (
+                                            notifications.map(notif => (
+                                                <button
+                                                    key={notif.id}
+                                                    onClick={() => !notif.read_at && handleMarkAsRead(notif.id)}
+                                                    className={`w-full text-left px-5 py-4 flex items-start gap-3 transition-all duration-200 hover:bg-zinc-50 group ${
+                                                        notif.read_at 
+                                                            ? 'bg-white' 
+                                                            : 'bg-blue-50/60'
+                                                    }`}
+                                                >
+                                                    {getNotifIcon(notif.icon, notif.color)}
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className={`text-[13px] leading-snug mb-0.5 ${
+                                                            notif.read_at 
+                                                                ? 'text-zinc-600 font-medium' 
+                                                                : 'text-zinc-900 font-bold'
+                                                        }`}>
+                                                            {notif.title}
+                                                        </p>
+                                                        <p className="text-[11px] text-zinc-400 leading-snug line-clamp-2 font-medium">
+                                                            {notif.message}
+                                                        </p>
+                                                        <p className="text-[10px] text-zinc-300 mt-1.5 font-bold uppercase tracking-wider">
+                                                            {notif.created_at}
+                                                        </p>
+                                                    </div>
+                                                    {!notif.read_at && (
+                                                        <span className="w-2.5 h-2.5 bg-blue-500 rounded-full shrink-0 mt-1.5 ring-4 ring-blue-100"></span>
+                                                    )}
+                                                </button>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        {/* ========== END NOTIFICATION BELL ========== */}
                     </div>
                 </header>
 

@@ -9,6 +9,7 @@ use App\Models\DetailTransaksi;
 use App\Models\Pelanggan;
 use App\Models\Layanan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 
 class TransaksiController extends Controller
 {
@@ -154,6 +155,14 @@ class TransaksiController extends Controller
             'message' => 'Status pesanan berhasil diperbarui!',
             'data' => $transaksi
         ]);
+        Notification::send($userAdmin, new \Illuminate\Notifications\Notification([
+            'via' => ['database'],
+            'database' => [
+                'title' => 'Pesanan #' . $transaksi->id . ' Siap Diambil!',
+                'message' => 'Cucian atas nama ' . $transaksi->nama_sementara . ' sudah selesai.',
+                'type' => 'success'
+            ]
+        ]));
     }
 
     public function statistics(Request $request)

@@ -259,7 +259,7 @@ export default function CustomersIndex({ user, setUser }) {
 
                             <h3 className="font-black text-2xl text-white text-center w-full truncate px-4 z-10 flex items-center justify-center gap-2">
                                 {selectedCustomer.nama}
-                                {selectedCustomer.transaksis_count >= 5 && (
+                                {selectedCustomer.total_transaksi >= 5 && (
                                     <span className="bg-yellow-100 text-yellow-700 border border-yellow-300 text-[10px] font-black px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-md shrink-0">
                                         🌟 MEMBER
                                     </span>

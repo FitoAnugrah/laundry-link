@@ -31,6 +31,7 @@ export default function POSCreate({ user, setUser }) {
     // Receipt Modal State
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
     const [lastTransactionId, setLastTransactionId] = useState(null);
+    const [waLink, setWaLink] = useState(null); // wa.me link untuk notif manual kasir
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -140,7 +141,59 @@ export default function POSCreate({ user, setUser }) {
                 diskon: diskonUntukPayload
             });
             
-            setLastTransactionId(resTx.data.data.id);
+            const txId        = resTx.data.data.id;
+            const noResi      = 'TRX-' + String(txId).padStart(5, '0');
+            const gTotal      = resTx.data.data.grand_total;
+            const snapCart    = [...cart];   // Snapshot cart SEBELUM dikosongkan
+            const snapDiskon  = diskonUntukPayload;
+            const snapMetode  = metodePembayaran;
+            const snapNama    = namaPelanggan;
+            const snapWa      = waPelanggan;
+            const snapTotal   = totalHarga;
+
+            const fmt = (n) => 'Rp ' + Number(n).toLocaleString('id-ID');
+            const tgl = new Date().toLocaleString('id-ID', {
+                day: 'numeric', month: 'long', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+
+            // Baris rincian per layanan
+            const rincianBaris = snapCart.map(item => {
+                const satuan = item.jenis === 'kiloan' ? 'kg' : 'pcs';
+                return (
+                    `  • ${item.nama_layanan}\n` +
+                    `    ${item.qty_atau_berat} ${satuan} × ${fmt(item.harga)} = *${fmt(item.subtotal)}*`
+                );
+            }).join('\n');
+
+            const metodeBadge = snapMetode === 'qris' ? '[QRIS]' : '[Tunai]';
+
+            const pesan =
+                `Halo *${snapNama}*,\n\n` +
+                `Terima kasih telah mempercayakan cucian di *LaundryLink*.\n` +
+                `--------------------------------\n` +
+                `*DETAIL PESANAN*\n` +
+                `No. Resi : *${noResi}*\n` +
+                `Tanggal  : ${tgl}\n\n` +
+                `*RINCIAN LAYANAN:*\n` +
+                `${rincianBaris}\n` +
+                `--------------------------------\n` +
+                (snapDiskon > 0
+                    ? `Subtotal  : ${fmt(snapTotal)}\nDiskon    : -${fmt(snapDiskon)}\n`
+                    : '') +
+                `*TOTAL    : ${fmt(gTotal)}*\n` +
+                `Bayar     : ${metodeBadge}\n` +
+                `--------------------------------\n\n` +
+                `Pesanan Anda sedang kami proses. Kami akan kabari jika sudah siap diambil!\n\n` +
+                `_Terima kasih - LaundryLink_`;
+
+            // Normalisasi nomor WA
+            let noWaNorm = snapWa.replace(/[\s\-\(\)]/g, '');
+            if (noWaNorm.startsWith('0')) noWaNorm = '62' + noWaNorm.slice(1);
+            if (noWaNorm.startsWith('+')) noWaNorm = noWaNorm.slice(1);
+
+            setWaLink(`https://wa.me/${noWaNorm}?text=${encodeURIComponent(pesan)}`);
+            setLastTransactionId(txId);
             setIsSuccessModalOpen(true);
 
             setCart([]);
@@ -458,10 +511,28 @@ export default function POSCreate({ user, setUser }) {
                             <CheckCircle2 className="w-10 h-10" />
                         </div>
                         
-                        <h3 className="font-black text-2xl text-zinc-800 mb-2 tracking-tight">Transaksi Sukses!</h3>
-                        <p className="text-zinc-500 font-medium text-sm mb-6 leading-relaxed">Pesanan telah dicatat dan WhatsApp notifikasi sedang dikirim.</p>
+                        <h3 className="font-black text-2xl text-zinc-800 mb-2 tracking-tight">Transaksi Sukses! 🎉</h3>
+                        <p className="text-zinc-500 font-medium text-sm mb-6 leading-relaxed">
+                            Pesanan telah dicatat. Kirim konfirmasi WhatsApp ke pelanggan sekarang.
+                        </p>
                         
                         <div className="flex flex-col w-full gap-3 mt-2">
+                            {/* Tombol WA — wa.me link manual */}
+                            {waLink && (
+                                <a
+                                    href={waLink}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    onClick={() => setIsSuccessModalOpen(false)}
+                                    className="w-full bg-[#25D366] hover:bg-[#1ebe5d] text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-green-500/20 active:scale-95 flex items-center justify-center gap-2"
+                                >
+                                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                                    </svg>
+                                    Kirim WhatsApp ke Pelanggan
+                                </a>
+                            )}
+
                             <button 
                                 onClick={() => {
                                     window.open(`/receipt/${lastTransactionId}`, '_blank');

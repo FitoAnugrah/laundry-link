@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PelangganController;
 use App\Http\Controllers\LayananController;
 use App\Http\Controllers\TransaksiController;
+use App\Http\Controllers\NotificationController;
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
@@ -40,4 +41,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('transaksi/{transaksi}/status', [TransaksiController::class, 'updateStatus']);
     Route::get('transaksi/{transaksi}/receipt', [TransaksiController::class, 'receipt']);
     Route::put('/pelanggan/{pelanggan}', [PelangganController::class, 'updateAlamat']);
+
+    // Notifications
+    Route::get('notifications', [NotificationController::class, 'index']);
+    Route::patch('notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead']);
 });

@@ -2,102 +2,144 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class WhatsAppService
 {
     /**
-     * URL Endpoint API WhatsApp Provider (e.g., Fonnte, Wablas, dll).
-     * TODO: Masukkan URL endpoint yang sesungguhnya di sini atau set via config/env.
+     * ═══════════════════════════════════════════════════════════════
+     *  MODE SAAT INI: LOGGING ONLY
+     *  wa.me link di-generate langsung di frontend (POSCreate.jsx).
+     *  
+     *  UNTUK MIGRASI KE META / FONNTE DI MASA DEPAN:
+     *  1. Ganti .env dengan token API yang sesuai
+     *  2. Uncomment blok kode "META" atau "FONNTE" di bawah
+     *  3. Delete blok Log::info() dummy ini
+     *  4. Tidak ada perubahan di TransaksiController atau Job!
+     * ═══════════════════════════════════════════════════════════════
      */
-    protected $apiUrl = 'https://api.fonnte.com/send'; 
 
     /**
-     * API Key atau Token untuk otentikasi Provider WhatsApp Anda.
-     * TODO: Ganti dengan token yang sesungguhnya atau tarik dari env('WA_TOKEN').
+     * Notifikasi struk — saat ini dicatat ke log saja.
+     * wa.me link untuk kasir di-generate di frontend (POSCreate.jsx).
      */
-    protected $token = 'YOUR_API_TOKEN_HERE';
-
-    /**
-     * Kirim notifikasi receipt/struk kasir saat transaksi baru diregistrasi.
-     *
-     * @param string $noWa
-     * @param string $nama
-     * @param string $noResi
-     * @param int $grandTotal
-     * @return bool
-     */
-    public function sendReceipt($noWa, $nama, $noResi, $grandTotal)
+    public function sendReceipt(string $noWa, string $nama, string $noResi, int $grandTotal): bool
     {
-        // 1. Format Pesan
-        $pesan = "Halo *{$nama}*,\n\n"
-               . "Terima kasih telah mempercayakan cucian Anda di *LaundryLink*.\n"
-               . "Nomor Resi: *{$noResi}*\n"
-               . "Total Tagihan: *Rp " . number_format($grandTotal, 0, ',', '.') . "*\n\n"
-               . "Kami akan segera memproses pesanan Anda. Kami akan kabari jika sudah selesai!\n\n"
-               . "_Pesan ini dikirim secara otomatis._";
+        Log::info("[WhatsApp] [MODE: wa.me] Struk untuk {$nama} ({$noWa})", [
+            'resi'        => $noResi,
+            'grand_total' => $grandTotal,
+            'wa_link'     => $this->generateWaLink($noWa, $this->buildReceiptMessage($nama, $noResi, $grandTotal)),
+        ]);
 
-        return $this->dispatchToProvider($noWa, $pesan);
+        return true;
     }
 
     /**
-     * Kirim notifikasi saat status laundry berubah menjadi "Siap Diambil".
-     *
-     * @param string $noWa
-     * @param string $nama
-     * @param string $noResi
-     * @return bool
+     * Notifikasi pickup — saat ini dicatat ke log saja.
      */
-    public function sendPickupNotification($noWa, $nama, $noResi)
+    public function sendPickupNotification(string $noWa, string $nama, string $noResi): bool
     {
-        // 1. Format Pesan
-        $pesan = "Yey! *{$nama}*,\n\n"
-               . "Cucian kamu dengan Nomor Resi *{$noResi}* sudah *SELESAI* dan wangi!\n"
-               . "Silakan ambil di outlet kami pada jam operasional ya.\n\n"
-               . "Terima kasih,\n"
-               . "*LaundryLink*";
+        Log::info("[WhatsApp] [MODE: wa.me] Pickup untuk {$nama} ({$noWa})", [
+            'resi'    => $noResi,
+            'wa_link' => $this->generateWaLink($noWa, $this->buildPickupMessage($nama, $noResi)),
+        ]);
 
-        return $this->dispatchToProvider($noWa, $pesan);
+        return true;
     }
 
-    /**
-     * Fungsi sentral untuk menembak HTTP Client ke Provider.
-     * 
-     * @param string $noWa
-     * @param string $pesan
-     * @return bool
-     */
-    protected function dispatchToProvider($noWa, $pesan)
+    /* ─────────────────────────────────────────────────────────────
+     |  HELPER: Generate wa.me link (digunakan juga oleh frontend
+     |  via response atau bisa dipanggil langsung jika perlu)
+     ───────────────────────────────────────────────────────────── */
+
+    public function generateWaLink(string $noWa, string $pesan): string
     {
-        try {
-            // TODO: Buka komentar di bawah ini saat provider asli sudah disiapkan.
-            
-            /*
-            $response = Http::withHeaders([
-                'Authorization' => $this->token, // Format otorisasi tiap provider berbeda
-            ])->post($this->apiUrl, [
-                'target' => $noWa,
-                'message' => $pesan,
-                'countryCode' => '62', // Penting untuk auto-format nomor (Fonnte/Wablas)
+        $noWa = $this->normalizeNumber($noWa);
+        return 'https://wa.me/' . $noWa . '?text=' . rawurlencode($pesan);
+    }
+
+    public function buildReceiptMessage(string $nama, string $noResi, int $grandTotal): string
+    {
+        $total = 'Rp ' . number_format($grandTotal, 0, ',', '.');
+
+        return "Halo *{$nama}* 👋\n\n"
+             . "Terima kasih telah mempercayakan cucian Anda di *LaundryLink* 🧺\n\n"
+             . "📋 *Detail Pesanan:*\n"
+             . "No. Resi : *{$noResi}*\n"
+             . "Total    : *{$total}*\n\n"
+             . "Pesanan Anda sedang kami proses. Kami akan kabari jika sudah siap diambil! ✨\n\n"
+             . "_LaundryLink_";
+    }
+
+    public function buildPickupMessage(string $nama, string $noResi): string
+    {
+        return "Halo *{$nama}* 🎉\n\n"
+             . "Cucian Anda (*{$noResi}*) sudah *SELESAI* dan siap diambil! ✅\n\n"
+             . "Silakan ambil di outlet kami sesuai jam operasional ya 🙏\n\n"
+             . "Terima kasih,\n*LaundryLink* 🧺";
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+     |  UPGRADE PATH — MASA DEPAN
+     |  Uncomment salah satu blok di bawah dan hapus blok Log di atas
+     ───────────────────────────────────────────────────────────── */
+
+    /*
+    // ── META CLOUD API ──────────────────────────────────────────
+    protected function sendViaMetaAPI(string $noWa, array $payload): bool
+    {
+        $token  = env('META_WA_TOKEN');
+        $phoneId = env('META_WA_PHONE_NUMBER_ID');
+        $version = env('META_WA_API_VERSION', 'v22.0');
+
+        $response = \Illuminate\Support\Facades\Http::timeout(15)
+            ->withToken($token)
+            ->acceptJson()
+            ->post("https://graph.facebook.com/{$version}/{$phoneId}/messages", $payload);
+
+        if ($response->successful() && isset($response->json()['messages'][0]['id'])) {
+            \Illuminate\Support\Facades\Log::info("[WhatsApp-Meta] Terkirim ke {$noWa}");
+            return true;
+        }
+
+        \Illuminate\Support\Facades\Log::error("[WhatsApp-Meta] Gagal", $response->json());
+        return false;
+    }
+    */
+
+    /*
+    // ── FONNTE API ──────────────────────────────────────────────
+    protected function sendViaFonnte(string $noWa, string $pesan): bool
+    {
+        $response = \Illuminate\Support\Facades\Http::timeout(15)
+            ->withHeaders(['Authorization' => env('FONNTE_TOKEN')])
+            ->asForm()
+            ->post('https://api.fonnte.com/send', [
+                'target'      => $noWa,
+                'message'     => $pesan,
+                'countryCode' => env('FONNTE_COUNTRY_CODE', '62'),
             ]);
 
-            if ($response->successful()) {
-                Log::info("WhatsApp berhasil dikirim ke: {$noWa}");
-                return true;
-            } else {
-                Log::error("Gagal mengirim WhatsApp ke {$noWa}: " . $response->body());
-                return false;
-            }
-            */
+        return $response->successful();
+    }
+    */
 
-            // Dummy simulator for now
-            Log::info("SIMULASI WA: Pesan '{$pesan}' terkirim ke {$noWa}");
-            return true;
+    /* ─────────────────────────────────────────────────────────────
+     |  UTILITY
+     ───────────────────────────────────────────────────────────── */
 
-        } catch (\Exception $e) {
-            Log::error("Error WA Service: " . $e->getMessage());
-            return false;
+    protected function normalizeNumber(string $noWa): string
+    {
+        $noWa = preg_replace('/[\s\-\(\)]/', '', $noWa);
+
+        if (str_starts_with($noWa, '+')) {
+            return ltrim($noWa, '+');
         }
+
+        if (str_starts_with($noWa, '0')) {
+            return '62' . substr($noWa, 1);
+        }
+
+        return $noWa;
     }
 }
