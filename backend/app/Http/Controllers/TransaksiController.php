@@ -142,29 +142,51 @@ class TransaksiController extends Controller
 
         $transaksi->update($validated);
 
-        if ($validated['status_pesanan'] === 'siap diambil' && $transaksi->wa_sementara) {
-            \App\Jobs\SendWhatsAppNotification::dispatch('pickup', [
-                'no_wa' => $transaksi->wa_sementara,
-                'nama' => $transaksi->nama_sementara ?? 'Pelanggan',
-                'no_resi' => 'TRX-' . str_pad($transaksi->id, 5, '0', STR_PAD_LEFT),
-            ]);
+        // Jika status berubah menjadi 'siap diambil', jalankan aksi-aksi ini
+        if ($validated['status_pesanan'] === 'siap diambil') {
+
+            // 1. Kirim pesan WhatsApp (Background Job)
+            if ($transaksi->wa_sementara) {
+                \App\Jobs\SendWhatsAppNotification::dispatch('pickup', [
+                    'no_wa' => $transaksi->wa_sementara,
+                    'nama' => $transaksi->nama_sementara ?? 'Pelanggan',
+                    'no_resi' => 'TRX-' . str_pad($transaksi->id, 5, '0', STR_PAD_LEFT),
+                ]);
+            }
+
+            // 2. Kirim Notifikasi Lonceng (Database) ke Kasir
+            // Ambil user yang sedang login, atau default ke user ID 1 (Admin)
+            $userAdmin = auth()->user() ?? \App\Models\User::first();
+
+            if ($userAdmin) {
+                \Illuminate\Support\Facades\Notification::send($userAdmin, new \Illuminate\Notifications\Notification([
+                    'via' => ['database'],
+                    'database' => [
+                        'title' => 'Pesanan #' . str_pad($transaksi->id, 4, '0', STR_PAD_LEFT) . ' Siap Diambil!',
+                        'message' => 'Cucian atas nama ' . ($transaksi->nama_sementara ?? 'Pelanggan') . ' sudah selesai dan siap diambil.',
+                        'type' => 'success'
+                    ]
+                ]));
+            }
         }
 
+        // PASTIKAN return SELALU BERADA DI BARIS PALING BAWAH FUNGSI
         return response()->json([
             'status' => 'success',
             'message' => 'Status pesanan berhasil diperbarui!',
             'data' => $transaksi
         ]);
-        Notification::send($userAdmin, new \Illuminate\Notifications\Notification([
-            'via' => ['database'],
-            'database' => [
-                'title' => 'Pesanan #' . $transaksi->id . ' Siap Diambil!',
-                'message' => 'Cucian atas nama ' . $transaksi->nama_sementara . ' sudah selesai.',
-                'type' => 'success'
-            ]
-        ]));
     }
+    public function destroy(Request $request, $id)
+    {
+        $transaksi = Transaksi::findOrFail($id);
+        $transaksi->delete();
 
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Transaksi berhasil dihapus!',
+        ]);
+    }   
     public function statistics(Request $request)
     {
         // Tangkap parameter bulan, default ke bulan ini jika kosong
