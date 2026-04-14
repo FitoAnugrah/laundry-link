@@ -228,28 +228,28 @@ export default function POSCreate({ user, setUser }) {
                         <div className="flex flex-col xl:flex-row gap-4">
                             <div className="flex-1">
                                 <label className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                                    <h4 className="flex items-center gap-2"><div className="bg-indigo-100 p-1 rounded-md"><User className="w-4 h-4 text-indigo-600"/></div> No. WhatsApp</h4>
+                                    <h4 className="flex items-center gap-2"><div className="bg-blue-100 p-1 rounded-md"><User className="w-4 h-4 text-blue-600"/></div> No. WhatsApp</h4>
                                 </label>
                                 <input 
                                     type="text"
                                     value={waPelanggan}
                                     onChange={handleWaChange}
                                     placeholder="Contoh: 081234567890"
-                                    className="w-full mt-1.5 rounded-xl border border-slate-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:ring-4 focus:ring-indigo-500/10 bg-slate-50 text-slate-700 p-3 font-medium transition-all"
+                                    className="w-full mt-1.5 rounded-xl border border-slate-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:ring-4 focus:ring-blue-500/10 bg-slate-50 text-slate-700 p-3 font-medium transition-all"
                                     required
                                 />
                                 <p className="text-[10px] text-slate-400 mt-2">*Ketik WA terdaftar untuk auto-fill nama.</p>
                             </div>
                             <div className="flex-1">
                                 <label className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                                    <h4 className="flex items-center gap-2"><div className="bg-indigo-100 p-1 rounded-md"><User className="w-4 h-4 text-indigo-600"/></div> Nama Pelanggan</h4>
+                                    <h4 className="flex items-center gap-2"><div className="bg-blue-100 p-1 rounded-md"><User className="w-4 h-4 text-blue-600"/></div> Nama Pelanggan</h4>
                                 </label>
                                 <input 
                                     type="text"
                                     value={namaPelanggan}
                                     onChange={e => setNamaPelanggan(e.target.value)}
                                     placeholder="Masukkan Nama..."
-                                    className="w-full mt-1.5 rounded-xl border border-slate-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:ring-4 focus:ring-indigo-500/10 bg-slate-50 text-slate-700 p-3 font-medium transition-all"
+                                    className="w-full mt-1.5 rounded-xl border border-slate-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:ring-4 focus:ring-blue-500/10 bg-slate-50 text-slate-700 p-3 font-medium transition-all"
                                     required
                                 />
                             </div>
@@ -442,43 +442,43 @@ export default function POSCreate({ user, setUser }) {
 
             {/* Overlay Input Modal (Qty/Berat) */}
             {isModalOpen && activeLayanan && (
-                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden">
-                        <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                            <h3 className="font-bold text-lg text-gray-800">
+                        <div className="p-5 border-b border-zinc-100 flex justify-between items-center bg-zinc-50">
+                            <h3 className="font-bold text-lg text-zinc-800">
                                 Input {activeLayanan.jenis === 'kiloan' ? 'Berat' : 'Jumlah'}
                             </h3>
-                            <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-700 transition bg-white rounded-full p-1 shadow-sm border border-gray-200">
+                            <button onClick={() => setIsModalOpen(false)} className="text-zinc-400 hover:text-zinc-700 transition bg-white rounded-full p-1 shadow-sm border border-zinc-200">
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
                         <div className="p-6">
-                            <h4 className="font-black text-xl text-center text-indigo-700 mb-1">{activeLayanan.nama_layanan}</h4>
-                            <p className="text-center text-sm font-medium text-gray-500 mb-6">{formatCurrency(activeLayanan.harga)} / {activeLayanan.jenis === 'kiloan' ? 'kg' : 'pcs'}</p>
+                            <h4 className="font-black text-xl text-center text-blue-700 mb-1">{activeLayanan.nama_layanan}</h4>
+                            <p className="text-center text-sm font-medium text-zinc-500 mb-6">{formatCurrency(activeLayanan.harga)} / {activeLayanan.jenis === 'kiloan' ? 'kg' : 'pcs'}</p>
                             
                             <div className="flex justify-center items-center gap-4 mb-8">
                                 <button 
                                     onClick={() => setQtyInput(prev => Math.max(0.5, parseFloat(prev) - 0.5).toString())}
-                                    className="w-14 h-14 rounded-2xl bg-gray-100 hover:bg-gray-200 border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 flex flex-col justify-center items-center text-gray-600 transition-all font-black text-2xl"
+                                    className="w-14 h-14 rounded-2xl bg-zinc-100 hover:bg-zinc-200 border-b-4 border-zinc-200 active:border-b-0 active:translate-y-1 flex flex-col justify-center items-center text-zinc-600 transition-all font-black text-2xl"
                                 >
                                     <Minus className="w-6 h-6" />
                                 </button>
                                 
-                                <div className="text-center border-b-2 border-indigo-600 pb-1 w-24">
+                                <div className="text-center border-b-2 border-blue-600 pb-1 w-24">
                                     <input 
                                         type="number" 
                                         step="0.1"
                                         value={qtyInput}
                                         onChange={(e) => setQtyInput(e.target.value)}
-                                        className="w-full text-center text-4xl font-black text-gray-800 border-none bg-transparent focus:ring-0 p-0 mb-1"
+                                        className="w-full text-center text-4xl font-black text-zinc-800 border-none bg-transparent focus:ring-0 p-0 mb-1"
                                         autoFocus
                                     />
-                                    <span className="text-gray-400 font-bold text-xs uppercase tracking-widest">{activeLayanan.jenis === 'kiloan' ? 'Kg' : 'Pcs'}</span>
+                                    <span className="text-zinc-400 font-bold text-xs uppercase tracking-widest">{activeLayanan.jenis === 'kiloan' ? 'Kg' : 'Pcs'}</span>
                                 </div>
 
                                 <button 
                                     onClick={() => setQtyInput(prev => (parseFloat(prev || 0) + 0.5).toString())}
-                                    className="w-14 h-14 rounded-2xl bg-indigo-100 hover:bg-indigo-200 border-b-4 border-indigo-200 active:border-b-0 active:translate-y-1 flex flex-col justify-center items-center text-indigo-700 transition-all font-black text-2xl"
+                                    className="w-14 h-14 rounded-2xl bg-blue-100 hover:bg-blue-200 border-b-4 border-blue-200 active:border-b-0 active:translate-y-1 flex flex-col justify-center items-center text-blue-700 transition-all font-black text-2xl"
                                 >
                                     <Plus className="w-6 h-6" />
                                 </button>
@@ -486,7 +486,7 @@ export default function POSCreate({ user, setUser }) {
 
                             <button 
                                 onClick={addToCart}
-                                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-95"
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-95"
                             >
                                 Konfirmasi & Tambah
                             </button>

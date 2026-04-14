@@ -8,6 +8,15 @@ export default function CustomersIndex({ user, setUser }) {
     const [alamatEdit, setAlamatEdit] = useState('');
 
     // 2. Fungsi sederhana untuk update alamat ke backend
+
+    const [customers, setCustomers] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState('');
+
+    // Modal states
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [customerError, setCustomerError] = useState(null);
+    const [selectedCustomer, setSelectedCustomer] = useState(null);
     const simpanAlamat = async () => {
         try {
             await api.put(`/api/pelanggan/${selectedCustomer.id}`, {
@@ -21,15 +30,6 @@ export default function CustomersIndex({ user, setUser }) {
             alert("Gagal menyimpan alamat");
         }
     };
-    const [customers, setCustomers] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState('');
-
-    // Modal states
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [selectedCustomer, setSelectedCustomer] = useState(null);
-
-    // Form State
     const [formData, setFormData] = useState({
         nama: '',
         no_wa: '',
@@ -61,7 +61,13 @@ export default function CustomersIndex({ user, setUser }) {
             setFormData({ nama: '', no_wa: '', alamat: '' });
         } catch (error) {
             console.error("Error adding customer", error);
-            alert("Terjadi kesalahan saat menyimpan data pelanggan.");
+            // Tangkap pesan error dari Laravel (terutama error 422 WA Duplikat)
+            if (error.response && error.response.status === 422) {
+                const errMsg = error.response.data.message || error.response.data.errors?.no_wa?.[0] || "Gagal! Nomor WhatsApp sudah terdaftar.";
+                setCustomerError(errMsg);
+            } else {
+                setCustomerError("Terjadi kesalahan sistem saat menyimpan data pelanggan.");
+            }
         }
     };
 
@@ -407,6 +413,23 @@ export default function CustomersIndex({ user, setUser }) {
 
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+            {/* POP-UP ERROR PELANGGAN */}
+            {customerError && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-900/40 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-[1.5rem] p-6 max-w-sm w-full shadow-2xl animate-in fade-in zoom-in duration-200">
+                        <div className="flex items-center justify-center w-14 h-14 mx-auto bg-red-50 rounded-full mb-4">
+                            <svg className="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                        </div>
+                        <h3 className="text-lg font-black text-center text-zinc-900 mb-2">Penambahan Ditolak</h3>
+                        <p className="text-sm text-center text-zinc-500 font-medium mb-6 leading-relaxed">{customerError}</p>
+                        <button onClick={() => setCustomerError(null)} className="w-full bg-zinc-900 text-white font-bold py-3.5 rounded-xl hover:bg-zinc-800 transition-colors">
+                            Saya Mengerti
+                        </button>
                     </div>
                 </div>
             )}
